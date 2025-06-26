@@ -1,3 +1,6 @@
+import os
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+
 import numpy as np
 import json
 import cv2
@@ -111,9 +114,10 @@ if config["split_submission"] == "synthetic":
     dataset_id = "synthetic"
 
 image_root = os.path.join(speed_root, dataset_id, 'images')
+kptsmap_root = os.path.join(speed_root, dataset_id, 'kptsmap_npy')
 
 if dataset_id == "sunlamp_train" or dataset_id == "lightbox_train": # reset all maps
-    kptsmap_root = os.path.join(speed_root, dataset_id, 'kptsmap')
+    kptsmap_root = os.path.join(speed_root, dataset_id, 'kptsmap_npy')
     os.system("rm " + kptsmap_root + "/*.*")
 
 with open(os.path.join(speed_root, dataset_id, "train" + '.json'), 'r') as f:
@@ -149,6 +153,7 @@ def save_map(sample_id):
 
     tmp     = q.T@(kpts+r2)
     kpts_im = cam.K@(tmp/tmp[2,:])
+    # 像素点
     kpts_im = np.transpose(kpts_im[:2,:])
     #kpts_im[kpts_im[:,0] >= 1920,0] = 1920-1
     #kpts_im[kpts_im[:,0] <= 0   ,0] = 0
@@ -166,7 +171,7 @@ def save_map(sample_id):
     filt_kpts_im = kpts_im[vis,:]
     filt_kpts    = kpts[:,vis]
 
-
+    os.makedirs(kptsmap_root, exist_ok=True) 
     savename = os.path.join(kptsmap_root,sample_id.split(".jpg")[0])
 
     np.savez_compressed(savename, pil_drawkpts, filt_kpts_im, filt_kpts, vis, allow_pickle=True)

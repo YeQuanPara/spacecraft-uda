@@ -1,3 +1,6 @@
+import os
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+
 import numpy as np
 import json
 import cv2
@@ -143,17 +146,20 @@ K[1, :] *= ((config["rows"])/1200)
 '''Define task function'''
 def save_map(sample_id):
 
-
+    # 读取姿态
     q_return, r = labels[sample_id]['q'], labels[sample_id]['r']
-
-
+    # q:R_tango_cam
     q = quat2dcm(q_return)
-
+    #  相机系下的位置
     r2 = np.expand_dims(np.array(r),axis=1)
+    # 左边r2为tango坐标系下 相机到t的向量；右边r2为cam系下 相机到t的向量
+    # R_tango_cam * cam_r_cam2t = t_r_cam2t
     r2 = q@(r2)
 
-
+    # 相机系下的3D坐标
+    # R_cam_t * (t_r_t2p + t_r_cam2t)
     tmp     = q.T@(kpts+r2)
+    # 像素点
     kpts_im = K@(tmp/tmp[2,:])
     kpts_im = np.transpose(kpts_im[:2,:])
 
@@ -171,6 +177,7 @@ def save_map(sample_id):
 
     heatmap    = np.transpose(heatmap,(1,2,0))
 
+    os.makedirs(kptsmap_root, exist_ok=True) 
     savename = os.path.join(kptsmap_root, sample_id.split(".jpg")[0])
 
     target_name_02   = savename + "_02.png"
